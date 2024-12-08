@@ -17,8 +17,8 @@ class Demo extends Phaser.Scene
 
 	create()
 	{
-		this.createMultiLayerMap();		// looks good to humans
-		this.createSingleLayerMap();	// looks good to computers
+		this.createMultiLayerMap();		// easier to understand for humans
+		this.createSingleLayerMap();	// easier to understand for computers
 		this.setInput();
 		this.displayControls();
 	}
