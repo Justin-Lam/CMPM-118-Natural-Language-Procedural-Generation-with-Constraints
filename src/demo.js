@@ -123,7 +123,7 @@ class Demo extends Phaser.Scene
 
 		// Populate
 		for (const type of this.STRUCTURE_TYPES) {
-			for (const [index, structure] of this.findStructures(this.singleLayerMapData, type.tileIDs).entries()) {
+			for (const [index, structure] of this.getStructures(this.singleLayerMapData, type.tileIDs).entries()) {
 				const mapStructure = {
 					type: type.name,
 					id: index,
@@ -152,7 +152,7 @@ class Demo extends Phaser.Scene
 		*/
 	}
 
-	findStructures(mapData, structureTiles) {
+	getStructures(mapData, structureTiles) {
 		// visitedTiles = a copy of mapData where each elem is a bool initialized to false
 		const visitedTiles = Array.from({ length: mapData.length }, () => Array(mapData[0].length).fill(false));
 		const structures = [];
