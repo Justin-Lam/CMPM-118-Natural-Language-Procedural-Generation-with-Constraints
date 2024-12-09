@@ -26,14 +26,10 @@ class Demo extends Phaser.Scene
 		{
 			name: "forest",
 			tileIDs: [
-				4, 5, /*6,*/ 7, 8, 9, 10, 11, 12,
+				4, 5, 7, 8, 9, 10, 11, 12,
 				16, 17, 18, 19, 20, 21, 22, 23, 24, 
 				28, 29, 30, 31, 32, 33, 34, 35, 36,
 				107, 95
-				// 6 is the id for the bushes found on front of the top left house
-				// these bushes aren't found anywhere else on the map
-				// and are notably not found in the forest either
-				// so we don't include it in here
 			]
 		}
 	];
@@ -63,9 +59,9 @@ class Demo extends Phaser.Scene
 		this.createMultiLayerMap();		// easier to understand visually for humans; displayed initially
 		this.createSingleLayerMap();	// easier to understand visually for computers
 
-		this.getMapStructures();		// mapStructures is the same thing as the world facts database
+		this.getWorldFacts();
 		console.log("Map structures (world facts database):");
-		console.log(this.mapStructures);
+		console.log(this.structures);
 
 		this.setInput();
 		this.displayControls();
@@ -117,39 +113,22 @@ class Demo extends Phaser.Scene
 		this.combinedLayer.setVisible(false);	// hidden initially
 	}
 
-	getMapStructures() {
+	getWorldFacts() {
 		// Initialize
-		this.mapStructures = [];
+		this.structures = [];
 
 		// Populate
 		for (const type of this.STRUCTURE_TYPES) {
-			for (const [index, structure] of this.getStructures(this.singleLayerMapData, type.tileIDs).entries()) {
-				const mapStructure = {
+			for (const [index, positionArray] of this.getStructures(this.singleLayerMapData, type.tileIDs).entries()) {
+				const structure = {
 					type: type.name,
 					id: index,
-					boundingBox: this.getBoundingBox(structure),
+					boundingBox: this.getBoundingBox(positionArray),
 					descriptions: []	// to be implemented
 				};
-				this.mapStructures.push(mapStructure);
+				this.structures.push(structure);
 			}
 		}
-		/*
-			note from justin:
-
-			currently a "structure" is an array of tile positions, i.e. [ { x, y }, { x, y }, ... ]
-			and a "mapStructure" is an object with a type, id, bounding box, and descriptions
-
-			i hate how the naming currently is
-			i wish "mapStructure" could be called "structure"
-			and what is currently called "structure" could be called something else
-			but i've been trying to think of a better way to name things than what there is currently
-			and i can't come up with any good ideas
-
-			i want "mapStructure" to have the prestigious name of "structure"
-			because ultimately we're trying to give the LLM useful and more easily understood information
-			and "mapStructure" (an object with type, id, bounding box, and descriptions) is that information,
-			not "structure" (an array of tile positions)
-		*/
 	}
 
 	getStructures(mapData, structureTiles) {
