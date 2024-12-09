@@ -4,27 +4,38 @@ class Demo extends Phaser.Scene
 	MAP_WIDTH = 40;		// in tiles
 	MAP_HEIGHT = 25;	// in tiles
 
-	TILES_HOUSE = [
-		49, 50, 51, 52, 53, 54, 55, 56,
-		61, 62, 63, 64, 65, 66, 67, 68,
-		73, 74, 75, 76, 77, 78, 79, 80,
-		85, 86, 87, 88, 89, 90, 91, 92
-	];
-	TILES_FENCE = [
-		45, 46, 47, 48, 
-		57, 59, 60, 
-		69, 70, 71, 72, 
-		81, 82, 83
-	];
-	TILES_FOREST = [
-		4, 5, /*6,*/ 7, 8, 9, 10, 11, 12,
-		16, 17, 18, 19, 20, 21, 22, 23, 24, 
-		28, 29, 30, 31, 32, 33, 34, 35, 36,
-		107, 95
-		// 6 is the id for the bushes found on front of the top left house
-		// these bushes aren't found anywhere else on the map
-		// and are notably not found in the forest either
-		// so we don't include it in here
+	STRUCTURE_TYPES = [
+		{
+			name: "house",
+			tileIDs: [
+				49, 50, 51, 52, 53, 54, 55, 56,
+				61, 62, 63, 64, 65, 66, 67, 68,
+				73, 74, 75, 76, 77, 78, 79, 80,
+				85, 86, 87, 88, 89, 90, 91, 92
+			]
+		},
+		{
+			name: "fence",
+			tileIDs: [
+				45, 46, 47, 48, 
+				57, 59, 60, 
+				69, 70, 71, 72, 
+				81, 82, 83
+			]
+		},
+		{
+			name: "forest",
+			tileIDs: [
+				4, 5, /*6,*/ 7, 8, 9, 10, 11, 12,
+				16, 17, 18, 19, 20, 21, 22, 23, 24, 
+				28, 29, 30, 31, 32, 33, 34, 35, 36,
+				107, 95
+				// 6 is the id for the bushes found on front of the top left house
+				// these bushes aren't found anywhere else on the map
+				// and are notably not found in the forest either
+				// so we don't include it in here
+			]
+		}
 	];
 
 	DIRECTIONS = [
@@ -52,13 +63,9 @@ class Demo extends Phaser.Scene
 		this.createMultiLayerMap();		// easier to understand visually for humans; displayed initially
 		this.createSingleLayerMap();	// easier to understand visually for computers
 
-		const structures = {
-			houses: this.findStructures(this.singleLayerMapData, this.TILES_HOUSE),
-			fences: this.findStructures(this.singleLayerMapData, this.TILES_FENCE),
-			forests: this.findStructures(this.singleLayerMapData, this.TILES_FOREST)
-		};
-		console.log(structures);
-		console.log(this.getBoundingBox(structures.houses[0]));
+		this.getMapStructures();		// mapStructures is the same thing as the world facts database
+		console.log("Map structures (world facts database):");
+		console.log(this.mapStructures);
 
 		this.setInput();
 		this.displayControls();
@@ -108,6 +115,41 @@ class Demo extends Phaser.Scene
 		});
 		this.combinedLayer = this.singleLayerMap.createLayer(0, this.tileset);
 		this.combinedLayer.setVisible(false);	// hidden initially
+	}
+
+	getMapStructures() {
+		// Initialize
+		this.mapStructures = [];
+
+		// Populate
+		for (const type of this.STRUCTURE_TYPES) {
+			for (const [index, structure] of this.findStructures(this.singleLayerMapData, type.tileIDs).entries()) {
+				const mapStructure = {
+					type: type.name,
+					id: index,
+					boundingBox: this.getBoundingBox(structure),
+					descriptions: []	// to be implemented
+				};
+				this.mapStructures.push(mapStructure);
+			}
+		}
+		/*
+			note from justin:
+
+			currently a "structure" is an array of tile positions, i.e. [ { x, y }, { x, y }, ... ]
+			and a "mapStructure" is an object with a type, id, bounding box, and descriptions
+
+			i hate how the naming currently is
+			i wish "mapStructure" could be called "structure"
+			and what is currently called "structure" could be called something else
+			but i've been trying to think of a better way to name things than what there is currently
+			and i can't come up with any good ideas
+
+			i want "mapStructure" to have the prestigious name of "structure"
+			because ultimately we're trying to give the LLM useful and more easily understood information
+			and "mapStructure" (an object with type, id, bounding box, and descriptions) is that information,
+			not "structure" (an array of tile positions)
+		*/
 	}
 
 	findStructures(mapData, structureTiles) {
