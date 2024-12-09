@@ -4,6 +4,38 @@ class Demo extends Phaser.Scene
 	MAP_WIDTH = 40;		// in tiles
 	MAP_HEIGHT = 25;	// in tiles
 
+	TILES_HOUSE = [
+		49, 50, 51, 52, 53, 54, 55, 56,
+		61, 62, 63, 64, 65, 66, 67, 68,
+		73, 74, 75, 76, 77, 78, 79, 80,
+		85, 86, 87, 88, 89, 90, 91, 92
+	];
+	TILES_FENCE = [
+		45, 46, 47, 48, 
+		57, 59, 60, 
+		69, 70, 71, 72, 
+		81, 82, 83
+	];
+	TILES_FOREST = [
+		4, 5, /*6,*/ 7, 8, 9, 10, 11, 12,
+		16, 17, 18, 19, 20, 21, 22, 23, 24, 
+		28, 29, 30, 31, 32, 33, 34, 35, 36,
+		107, 95
+		// 6 is the id for the bushes found on front of the top left house
+		// these bushes aren't found anywhere else on the map
+		// and are notably not found in the forest either
+		// so we don't include it in here
+	];
+
+	DIRECTIONS = [
+		{ x: 0, y: -1 }, // up
+		{ x: 0, y: 1 },  // down
+		{ x: -1, y: 0 }, // left
+		{ x: 1, y: 0 }   // right
+	];
+
+	MIN_STRUCTURE_SIZE = 3;	// in tiles
+
 	constructor() {
 		super("demoScene");
 	}
@@ -17,38 +49,15 @@ class Demo extends Phaser.Scene
 
 	create()
 	{
-		this.createMultiLayerMap();		// easier to understand for humans
-		this.createSingleLayerMap();	// easier to understand for computers
+		this.createMultiLayerMap();		// easier to understand visually for humans; displayed initially
+		this.createSingleLayerMap();	// easier to understand visually for computers
 
-		// find houses
-		let houseTiles = [
-			49, 50, 51, 52, 53, 54, 55, 56,
-			61, 62, 63, 64, 65, 66, 67, 68,
-			73, 74, 75, 76, 77, 78, 79, 80,
-			85, 86, 87, 88, 89, 90, 91, 92
-		];
-		let houses = this.findStructures(this.singleLayerMapData, houseTiles);
-		console.log("houses", houses)
-
-		// find fences
-		let fenceTiles = [
-			45, 46, 47, 48, 
-			57, 59, 60, 
-			69, 70, 71, 72, 
-			81, 82, 83
-		];
-		let fences = this.findStructures(this.singleLayerMapData, fenceTiles);
-		console.log("fences", fences)
-
-		// find forest
-		let forestTiles = [
-			4, 5, 6, 7, 8, 9, 10, 11, 12, 
-			16, 17, 18, 19, 20, 21, 22, 23, 24, 
-			28, 29, 30, 31, 32, 33, 34, 35, 36,
-			107, 95
-		];
-		let forests = this.findStructures(this.singleLayerMapData, forestTiles);
-		console.log("forests", forests)
+		const structures = {
+			houses: this.findStructures(this.singleLayerMapData, this.TILES_HOUSE),
+			fences: this.findStructures(this.singleLayerMapData, this.TILES_FENCE),
+			forests: this.findStructures(this.singleLayerMapData, this.TILES_FOREST)
+		};
+		console.log(structures);
 
 		this.setInput();
 		this.displayControls();
@@ -87,7 +96,6 @@ class Demo extends Phaser.Scene
 				if (this.housesLayer.layer.data[y][x].index > 0) {
 					this.singleLayerMapData[y][x] = this.housesLayer.layer.data[y][x].index;
 				}
-
 			}
 		}
 
@@ -101,20 +109,22 @@ class Demo extends Phaser.Scene
 		this.combinedLayer.setVisible(false);	// hidden initially
 	}
 
-	findStructures(mapData, targetStructure) {
-		const visited = Array.from({ length: mapData.length }, () => Array(mapData[0].length).fill(false));
+	findStructures(mapData, structureTiles) {
+		// visitedTiles = a copy of mapData where each elem is a bool initialized to false
+		const visitedTiles = Array.from({ length: mapData.length }, () => Array(mapData[0].length).fill(false));
 		const structures = [];
 	
 		for (let y = 0; y < mapData.length; y++) {
 			for (let x = 0; x < mapData[0].length; x++) {
-				// Skip empty or already visited tiles
-				if (mapData[y][x] === 0 || visited[y][x]) continue;
+				
+				// Skip if empty or already visited tiles
+				if (mapData[y][x] === 0 || visitedTiles[y][x]) continue;
 	
 				// Flood fill to find connected structure
-				const structure = this.floodFill(mapData, x, y, visited, targetStructure);
+				const structure = this.floodFill(mapData, x, y, visitedTiles, structureTiles);
 	
 				// Store structure if it meets criteria
-				if (structure.length > 3) {
+				if (structure.length > this.MIN_STRUCTURE_SIZE) {
 					structures.push(structure);
 				}
 			}
@@ -123,34 +133,28 @@ class Demo extends Phaser.Scene
 		return structures;
 	}
 
-	floodFill(mapData, startX, startY, visited, target) {
+	floodFill(mapData, startX, startY, visitedTiles, structureTiles) {
 		const structure = [];
 		const stack = [{ x: startX, y: startY }];
-		const directions = [
-			{ x: 0, y: -1 }, // up
-			{ x: 0, y: 1 },  // down
-			{ x: -1, y: 0 }, // left
-			{ x: 1, y: 0 }   // right
-		];
 	
 		while (stack.length > 0) {
 			const { x, y } = stack.pop();
-			// Skip if already visited or out of bounds
+
+			// Skip if:
 			if (
-				x < 0 || y < 0 || 
-				x >= mapData[0].length || y >= mapData.length || 
-				visited[y][x] || /*mapData[y][x] !== tileIndex ||*/
-				target.findIndex((elem) => elem === mapData[y][x]) === -1
+				x < 0 || y < 0 || x >= mapData[0].length || y >= mapData.length || 	// out of bounds
+				visitedTiles[y][x] ||												// already visited tile
+				structureTiles.findIndex((elem) => elem === mapData[y][x]) === -1	// tile is not a structure tile
 			) {
 				continue;
 			}
 	
 			// Mark as visited and add to structure
-			visited[y][x] = true;
+			visitedTiles[y][x] = true;
 			structure.push({ x, y });
 	
-			// Add neighbors to the stack
-			for (const dir of directions) {
+			// Add neighbors to stack
+			for (const dir of this.DIRECTIONS) {
 				stack.push({ x: x + dir.x, y: y + dir.y });
 			}
 		}
@@ -158,7 +162,8 @@ class Demo extends Phaser.Scene
 		return structure;
 	}
 	
-
+	// not currently in use
+	/*
 	printLayer(layer){
 		let print = ""
 		for(const row of layer){
@@ -170,6 +175,7 @@ class Demo extends Phaser.Scene
 		}
 		return print;
 	}
+	*/
 
 	setInput() {
 		this.swapMapKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
@@ -184,7 +190,7 @@ class Demo extends Phaser.Scene
 	displayControls() {
 		document.getElementById("description").innerHTML = `
 		<h2>Controls</h2>
-		Swap visible map: M
+		Swap maps: M
 		`;
 	}
 }
