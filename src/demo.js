@@ -58,6 +58,7 @@ class Demo extends Phaser.Scene
 			forests: this.findStructures(this.singleLayerMapData, this.TILES_FOREST)
 		};
 		console.log(structures);
+		console.log(this.getBoundingBox(structures.houses[0]));
 
 		this.setInput();
 		this.displayControls();
@@ -160,6 +161,25 @@ class Demo extends Phaser.Scene
 		}
 	
 		return structure;
+	}
+
+	getBoundingBox(structure) {
+		let minX = structure[0].x;
+		let maxX = structure[0].x;
+		let minY = structure[0].y;
+		let maxY = structure[0].y;
+
+		for (const { x, y } of structure) {
+			if (x < minX) minX = x;
+			else if (x > maxX) maxX = x;
+			if (y < minY) minY = y;
+			else if (y > maxY) maxY = y;
+		}
+
+		return {
+			topLeft: { minX, minY },
+			bottomRight: { maxX, maxY }
+		};
 	}
 	
 	// not currently in use
