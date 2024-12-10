@@ -12,7 +12,14 @@ class Demo extends Phaser.Scene
 				61, 62, 63, 64, 65, 66, 67, 68,
 				73, 74, 75, 76, 77, 78, 79, 80,
 				85, 86, 87, 88, 89, 90, 91, 92
-			]
+			],
+			features: {
+				"archway": [75, 79],
+				"chimney": [52, 56],
+				"dormer": [64, 68],
+				"door": [86, 87, 88, 90, 91, 92],
+				"window": [85, 89],
+			}
 		},
 		{
 			name: "fence",
@@ -30,7 +37,13 @@ class Demo extends Phaser.Scene
 				16, 17, 18, 19, 20, 21, 22, 23, 24, 
 				28, 29, 30, 31, 32, 33, 34, 35, 36,
 				107, 95
-			]
+			],
+			features: {
+				"log": [107],
+				"behive": [95],
+				"mushroom": [30],
+				"sprout": [18]
+			}
 		}
 	];
 
@@ -124,7 +137,7 @@ class Demo extends Phaser.Scene
 					type: type.name,
 					id: index,
 					boundingBox: this.getBoundingBox(positionArray),
-					descriptions: []	// to be implemented
+					descriptions: this.generateDescriptions(this.singleLayerMapData, positionArray, type)	// to be implemented
 				};
 				this.structures.push(structure);
 			}
@@ -202,8 +215,64 @@ class Demo extends Phaser.Scene
 			bottomRight: { maxX, maxY }
 		};
 	}
+
+	generateDescriptions(mapData, positions, type){
+		let descriptions = [];
+		let features = type.features;
+
+		// descripe posiiton on map
+		let mapZone = this.getMapZone(positions[0]);
+		descriptions.push(`${type.name} at ${mapZone} of map`)
+
+		// describe features
+		for(let featureType in features){
+			let featureCount = 0;
+			for (let {x, y} of positions){ // check for a feature at each position (coord)
+				if(features[featureType].includes(mapData[y][x])){
+					featureCount++;
+				}
+			}
+			if(featureCount > 0){ 
+				if(featureCount > 1){ featureType += "s" } 	// make feature type plural
+				descriptions.push(`${mapZone} ${type.name} has ${featureCount} ${featureType}`)
+			}
+		}
+
+		// TODO: describe structure position in relation to other structures?
+		// TODO: describe primary color?
+
+		return descriptions;
+	}
+
+	getMapZone(coords){
+		let horizontalSliceSize = this.MAP_HEIGHT / 3;	// top, center, bottom
+		let verticalSliceSize = this.MAP_WIDTH / 3;		// right, center, left
+
+		let {x, y} = coords;
+		let mapZone = "";
+
+		// find horizonal zone
+		if(y < horizontalSliceSize){ 
+			mapZone = "top"; 
+		} else if(y < 2 * horizontalSliceSize){ 
+			mapZone = "center"; 
+		} else{ 
+			mapZone = "bottom"; 
+		}
+
+		// find vertical zone
+		if(x < verticalSliceSize){ 
+			mapZone += " left"; 
+		} else if(x < 2 * verticalSliceSize && mapZone !== "center"){ 
+			mapZone += " center"; 
+		} else{ 
+			mapZone += " right"; 
+		}
+
+		return mapZone;
+	}
 	
-	// not currently in use
+	// not currently in use (debug util)
 	/*
 	printLayer(layer){
 		let print = ""
