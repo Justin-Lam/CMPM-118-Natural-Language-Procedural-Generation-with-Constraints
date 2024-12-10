@@ -220,8 +220,10 @@ class Demo extends Phaser.Scene
 		let descriptions = [];
 		let features = type.features;
 
-		// descripe posiiton on map
+		// descripe position on map
 		let mapZone = this.getMapZone(positions[0]);
+		// ^ this is using basically a random tile of the structure to determine what zone the structure is in i believe?
+		// i think we should consider calculating the center of the structure's bounding box and use that instead
 		descriptions.push(`${type.name} at ${mapZone} of map`)
 
 		// describe features
