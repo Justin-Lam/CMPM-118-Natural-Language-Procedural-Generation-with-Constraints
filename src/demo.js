@@ -4,6 +4,52 @@ class Demo extends Phaser.Scene
 	MAP_WIDTH = 40;		// in tiles
 	MAP_HEIGHT = 25;	// in tiles
 
+	TILE_COLORS = [
+		{
+			colorID: 0,
+			colorName: "red",
+			tileIDs: [
+				29, 52, 53, 54, 55, 
+				64, 65, 66, 67, 95
+			]
+		},
+		{
+			colorID: 1,
+			colorName: "yellow",
+			tileIDs: [
+				3, 9, 10, 11, 15, 21, 22, 
+				23, 27, 33, 34, 35, 93, 94
+			]
+		},
+		{
+			colorID: 2,
+			colorName: "brown",
+			tileIDs: [
+				44, 45, 46, 47, 56, 57, 58, 
+				59, 68, 69, 70, 71, 72, 73, 74, 
+				75, 80, 81, 82, 83, 84, 85, 86, 87
+			]
+		},
+		{
+			colorID: 3,
+			colorName: "green",
+			tileIDs: [
+				4, 5, 6, 7, 8,
+				16, 17, 18, 19, 20,
+				28, 30, 31, 32
+			]
+		},
+		{
+			colorID: 4,
+			colorName: "gray",
+			tileIDs: [
+				48, 49, 50, 51, 60, 
+				61, 62, 63, 76, 77,
+				78, 79, 88, 89, 90, 91
+			]
+		}
+	]
+
 	STRUCTURE_TYPES = [
 		{
 			name: "house",
@@ -133,11 +179,17 @@ class Demo extends Phaser.Scene
 		// Populate
 		for (const type of this.STRUCTURE_TYPES) {
 			for (const [index, positionArray] of this.getStructures(this.singleLayerMapData, type.tileIDs).entries()) {
+				// generate position and features
+				let descriptionsList = [];
+				this.generateDescriptionPosition(descriptionsList, positionArray, type);
+				this.generateDescriptionFeatures(descriptionsList, this.singleLayerMapData, positionArray, type);
+				this.generateDescriptionColor(descriptionsList, type, this.singleLayerMapData, positionArray);
+
 				const structure = {
 					type: type.name,
 					id: index,
 					boundingBox: this.getBoundingBox(positionArray),
-					descriptions: this.generateDescriptions(this.singleLayerMapData, positionArray, type)	// to be implemented
+					descriptions: descriptionsList
 				};
 				this.structures.push(structure);
 			}
@@ -216,15 +268,19 @@ class Demo extends Phaser.Scene
 		};
 	}
 
-	generateDescriptions(mapData, positions, type){
-		let descriptions = [];
-		let features = type.features;
-
-		// descripe position on map
+	generateDescriptionPosition(descriptions, positions, type)
+	{
+		// describe position on map
 		let mapZone = this.getMapZone(positions[0]);
 		// ^ this is using basically a random tile of the structure to determine what zone the structure is in i believe?
-		// i think we should consider calculating the center of the structure's bounding box and use that instead
-		descriptions.push(`${type.name} at ${mapZone} of map`)
+		// TODO: i think we should consider calculating the center of the structure's bounding box and use that instead
+		descriptions.push(`${type.name} at ${mapZone} of map`);
+	}
+
+	generateDescriptionFeatures(descriptions, mapData, positions, type)
+	{
+		let mapZone = this.getMapZone(positions[0]);
+		let features = type.features;
 
 		// describe features
 		for(let featureType in features){
@@ -236,15 +292,81 @@ class Demo extends Phaser.Scene
 			}
 			if(featureCount > 0){ 
 				if(featureCount > 1){ featureType += "s" } 	// make feature type plural
-				descriptions.push(`${mapZone} ${type.name} has ${featureCount} ${featureType}`)
+				descriptions.push(`${mapZone} ${type.name} has ${featureCount} ${featureType}`);
+			}
+		}
+	}
+
+	generateDescriptionColor(descriptions, type, mapData, positions)
+	{
+		let color1 = "";
+		let color2 = "";
+		let colorsCount = [];
+
+		// init colorsCount
+		for (let i = 0; i < this.TILE_COLORS.length; i++)
+		{
+			colorsCount[i] = 0;
+		}
+
+		for (let {x, y} of positions){
+			for (const color of this.TILE_COLORS) {
+				if (color.tileIDs.includes(mapData[y][x])) {
+					colorsCount[color.colorID] += 1;
+				}
 			}
 		}
 
-		// TODO: describe structure position in relation to other structures?
-		// TODO: describe primary color?
+		let maxColorIndex = 0;
 
-		return descriptions;
+		maxColorIndex = this.getMaxColor(colorsCount); // get the most frequently-occuring color
+		for (const color of this.TILE_COLORS) {
+			if (maxColorIndex == color.colorID) {
+				color1 = color.colorName;
+			}
+		}
+		colorsCount[maxColorIndex] = 0;
+		maxColorIndex = this.getMaxColor(colorsCount); // get the next most frequently-occuring color
+		if (maxColorIndex == -1)
+		{
+			color2 = "";
+		}
+		else
+		{
+			for (const color of this.TILE_COLORS) {
+				if (maxColorIndex == color.colorID) {
+					color2 = " and " + color.colorName;
+				}
+			}
+		}
+
+		descriptions.push(`${color1}${color2} ${type.name}`);
 	}
+
+	getMaxColor(colorsCount) {
+		let maxColorFrequency = 0;
+		let maxColorIndex = 0;
+
+		for (let i = 0; i < colorsCount.length; i++) {
+			if (colorsCount[i] > maxColorFrequency)
+			{
+				maxColorFrequency = colorsCount[i];
+				maxColorIndex = i;
+			}
+		}
+
+		if (maxColorFrequency < 1)
+			return -1;
+
+		return maxColorIndex;
+	}
+
+	// TODO
+	/*
+	generateDescriptionRelativePos(descriptions, boundingBox)
+	{
+	}
+	*/
 
 	getMapZone(coords){
 		let horizontalSliceSize = this.MAP_HEIGHT / 3;	// top, center, bottom
